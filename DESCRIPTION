@@ -1,0 +1,28 @@
+Package: openhrv
+Title: Open Heart Rate Variability Analysis
+Version: 0.1.0
+Authors@R: 
+    person(given = "Open",
+           family = "HRV",
+           role = c("aut", "cre"),
+           email = "openhrv@example.org")
+Description: Open, reproducible heart rate variability analysis for
+    scientists. The package starts from RR or NN intervals, performs
+    artifact screening and correction, computes time-domain,
+    frequency-domain, geometric, and nonlinear HRV metrics, and can
+    generate simple reports.
+License: GPL-3
+Encoding: UTF-8
+LazyData: false
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)
+Imports:
+    ggplot2
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3

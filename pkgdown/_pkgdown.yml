@@ -1,0 +1,11 @@
+template:
+  bootstrap: 5
+reference:
+  - title: Core workflow
+    contents:
+      - hrv_record
+      - preprocess_rr
+      - analyze_hrv
+      - metrics_table
+      - autoplot
+      - hrv_report

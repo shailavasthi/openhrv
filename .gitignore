@@ -1,0 +1,9 @@
+.DS_Store
+.Rhistory
+.RData
+.Rproj.user/
+*.tar.gz
+*.Rcheck/
+*.html
+/openhrv.Rcheck/
+/openhrv_*.tar.gz

@@ -1,0 +1,23 @@
+---
+title: "Methodological differences vs Kubios"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Methodological differences vs Kubios}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+`openhrv` follows the analysis families and public methodological descriptions from Kubios while remaining an independent, transparent implementation.
+
+Key differences in this initial release:
+
+- Artifact handling is a Lipponen-Tarvainen style classifier implemented from open rules rather than an exact commercial replication.
+- Spectrum estimation defaults and band definitions match standard HRV practice, but numeric output may differ slightly because implementation details such as windowing and detrending are open and documented.
+- Nonlinear metrics with high implementation sensitivity, especially entropy, correlation dimension, and recurrence quantification, should be treated as literature-aligned estimates rather than exact software clones.
+
+```{r}
+library(openhrv)
+rr <- 1000 + 60 * sin(seq(0, 8 * pi, length.out = 300))
+res <- analyze_hrv(hrv_record(rr))
+metrics_table(res, "time")
+```
