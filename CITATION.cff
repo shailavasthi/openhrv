@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use openhrv in your work, please cite it using the metadata below."
+title: "openhrv"
+type: software
+authors:
+  - family-names: "Avasthi"
+    given-names: "Shail"
+version: "0.1.0"
+date-released: "2026-03-13"
+license: "GPL-3"
+abstract: >-
+  openhrv is an open R package for heart rate variability analysis from RR or
+  NN intervals. It provides preprocessing, time-domain, frequency-domain,
+  geometric, nonlinear, and reporting workflows for reproducible HRV research.
+keywords:
+  - "R"
+  - "heart rate variability"
+  - "HRV"
+  - "physiology"
+  - "signal processing"
+repository-code: "https://github.com/shailavasthi/openhrv"
+license-url: "https://www.gnu.org/licenses/gpl-3.0.html"
