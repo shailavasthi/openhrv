@@ -1,30 +1,93 @@
+rolling_quantile <- function(x, probs, k = 91L) {
+  k <- as.integer(max(5L, k))
+  if (k %% 2L == 0L) {
+    k <- k + 1L
+  }
+  half <- (k - 1L) / 2L
+  out <- matrix(NA_real_, nrow = length(x), ncol = length(probs))
+  for (i in seq_along(x)) {
+    lo <- max(1L, i - half)
+    hi <- min(length(x), i + half)
+    out[i, ] <- stats::quantile(x[lo:hi], probs = probs, names = FALSE, type = 8)
+  }
+  out
+}
+
+adaptive_drr_threshold <- function(drr, k = 91L, scale = 5.2) {
+  q <- rolling_quantile(abs(drr), probs = c(0.25, 0.75), k = k)
+  qd <- (q[, 2L] - q[, 1L]) / 2
+  floor_threshold <- stats::median(abs(drr)) * 0.1
+  pmax(scale * qd, floor_threshold)
+}
+
 artifact_classifier <- function(rr_ms) {
-  baseline <- median_filter(rr_ms, k = 11L)
-  spread <- mad_filter(rr_ms, k = 11L)
-  spread[spread < 1e-6] <- stats::median(rr_ms) * 0.02
-  ratio <- rr_ms / baseline
+  n <- length(rr_ms)
+  if (n < 5L) {
+    return(rep("normal", n))
+  }
+
+  med_rr <- median_filter(rr_ms, k = 11L)
   drr <- c(0, diff(rr_ms))
-  ddrr <- c(0, diff(drr))
-  types <- rep("normal", length(rr_ms))
+  threshold <- adaptive_drr_threshold(drr, k = 91L, scale = 5.2)
+  types <- rep("normal", n)
 
-  short_idx <- which(ratio < 0.8 | rr_ms < baseline - 3 * spread)
-  long_idx <- which(ratio > 1.2 | rr_ms > baseline + 3 * spread)
-  ectopic_idx <- which(abs(drr) > 3 * stats::median(abs(drr - stats::median(drr))) &
-                         abs(ddrr) > stats::median(abs(ddrr)) * 2)
+  for (i in seq_len(n)) {
+    local_rr <- med_rr[i]
+    current_rr <- rr_ms[i]
+    current_abs_drr <- abs(drr[i])
+    next_drr <- if (i < n) drr[i + 1L] else 0
+    prev_drr <- if (i > 1L) drr[i] else 0
+    active_threshold <- threshold[i]
+    next_threshold <- if (i < n) threshold[i + 1L] else active_threshold
 
-  types[short_idx] <- "short"
-  types[long_idx] <- "long"
-  types[ectopic_idx] <- "ectopic"
+    if (current_abs_drr <= active_threshold &&
+        abs(next_drr) <= next_threshold &&
+        current_rr > 0.75 * local_rr &&
+        current_rr < 1.25 * local_rr) {
+      next
+    }
 
-  missed_idx <- which(ratio > 1.8)
-  extra_idx <- which(ratio < 0.65)
-  types[missed_idx] <- "missed"
-  types[extra_idx] <- "extra"
+    if (i < n) {
+      combined_rr <- current_rr + rr_ms[i + 1L]
+      if (current_rr < 0.75 * local_rr &&
+          abs(combined_rr - local_rr) <= 0.2 * local_rr) {
+        types[i] <- "extra"
+        next
+      }
+    }
 
-  types[seq_len(min(2L, length(types)))] <- ifelse(types[seq_len(min(2L, length(types)))] == "normal",
-                                                    "normal",
-                                                    types[seq_len(min(2L, length(types)))])
-  types[length(types)] <- ifelse(types[length(types)] == "normal", "normal", types[length(types)])
+    if (current_rr > 1.6 * local_rr) {
+      half_rr <- current_rr / 2
+      if (abs(half_rr - local_rr) <= 0.2 * local_rr) {
+        types[i] <- "missed"
+        next
+      }
+    }
+
+    if (current_abs_drr > active_threshold && abs(next_drr) > next_threshold) {
+      opposite_sign <- sign(drr[i]) != sign(next_drr) && sign(drr[i]) != 0 && sign(next_drr) != 0
+      return_to_baseline <- if (i < (n - 1L)) {
+        abs(rr_ms[i + 1L] - med_rr[i + 1L]) <= 0.2 * med_rr[i + 1L]
+      } else {
+        TRUE
+      }
+      if (opposite_sign && return_to_baseline) {
+        types[i] <- "ectopic"
+        next
+      }
+    }
+
+    if (current_rr < 0.8 * local_rr || (current_abs_drr > active_threshold && current_rr < local_rr)) {
+      types[i] <- "short"
+      next
+    }
+
+    if (current_rr > 1.2 * local_rr || (current_abs_drr > active_threshold && current_rr > local_rr)) {
+      types[i] <- "long"
+    }
+  }
+
+  types[c(1L, n)] <- ifelse(types[c(1L, n)] == "normal", "normal", types[c(1L, n)])
   types
 }
 
